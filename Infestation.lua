@@ -14,6 +14,7 @@ local myTeam = Spring.GetMyTeamID()
 local mapWidth = Game.mapX * 512
 local mapHeight = Game.mapY * 512
 local edgeGuardDistance = 200
+local infestorUnitDef = UnitDefNames["leginfestor"]
 
 local function clamp(val, min, max)
   if val < min then return min end
@@ -32,7 +33,7 @@ end
 
 -- Supresses gaurd commands on newly created infestors
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-  if (unitDefID == 1389 and unitTeam == myTeam) then
+  if (unitDefID == infestorUnitDef.id and unitTeam == myTeam) then
     local commands = Spring.GetUnitCommands(unitID, -1)
       if commands and #commands > 0 then
       local currentCmd = commands[1]
@@ -45,7 +46,8 @@ end
 
 --Orders idle infestors to either construct a new infestor or fight to a nearby position.
 function widget:UnitIdle(unitID, unitDefID, unitTeam)
-  if (unitDefID == 1389 and unitTeam == myTeam) then
+
+  if (unitDefID == infestorUnitDef.id and unitTeam == myTeam) then
 
     local randomChoice = math.random(1,2)
 
@@ -60,7 +62,7 @@ function widget:UnitIdle(unitID, unitDefID, unitTeam)
 
     elseif randomChoice == 2 then 
       unitOrderX, unitOrderZ = GetPointOnCircle(unitPosX,unitPosZ,75)
-      Spring.GiveOrderToUnit(unitID,-1389,{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
+      Spring.GiveOrderToUnit(unitID,-(infestorUnitDef.id),{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
     end
   end
 end
