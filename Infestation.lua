@@ -43,7 +43,7 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
   end 
 end
 
---Orders idle infestors to either constructor a new infestor or fight to a nearby position.
+--Orders idle infestors to either construct a new infestor or fight to a nearby position.
 function widget:UnitIdle(unitID, unitDefID, unitTeam)
   if (unitDefID == 1389 and unitTeam == myTeam) then
 
