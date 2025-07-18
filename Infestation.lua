@@ -49,20 +49,23 @@ function widget:UnitIdle(unitID, unitDefID, unitTeam)
 
   if (unitDefID == infestorUnitDef.id and unitTeam == myTeam) then
 
-    local randomChoice = math.random(1,2)
-
+    local energy = {Spring.GetTeamResources(myTeam,"energy")}
+    local metal = {Spring.GetTeamResources(myTeam,"metal")}
+    local metalStorageFill = metal[1]/metal[2]
+    local energyStorageFill = energy[1]/energy[2]
+    local minResourse = math.min(metalStorageFill,energyStorageFill)
+    local random = math.random()
     local unitPosX, unitPosZ
     local unitOrderX, unitOrderZ
 
     unitPosX, _ ,unitPosZ = Spring.GetUnitPosition(unitID)   
     
-    if randomChoice == 1 then 
-      unitOrderX, unitOrderZ = GetPointOnCircle(unitPosX,unitPosZ,300)
-      Spring.GiveOrderToUnit(unitID,CMD.FIGHT,{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
-
-    elseif randomChoice == 2 then 
+    if random < minResourse and random < 0.85 then
       unitOrderX, unitOrderZ = GetPointOnCircle(unitPosX,unitPosZ,75)
       Spring.GiveOrderToUnit(unitID,-(infestorUnitDef.id),{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
+    else
+      unitOrderX, unitOrderZ = GetPointOnCircle(unitPosX,unitPosZ,300)
+      Spring.GiveOrderToUnit(unitID,CMD.FIGHT,{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
     end
   end
 end
