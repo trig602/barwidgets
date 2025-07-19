@@ -10,11 +10,21 @@ function widget:GetInfo()
   }
 end
 
-local myTeam = Spring.GetMyTeamID()
+
+
+local infestorUnitDef = UnitDefNames["leginfestor"]
+if not infestorUnitDef then
+  error("[Infestation Widget] Legion not enabled — disabling widget.")
+end
+
+local edgeGuardDistance = 200
+local unitCapPercent = 0.85
+
+local myTeamID = Spring.GetMyTeamID()
 local mapWidth = Game.mapX * 512
 local mapHeight = Game.mapY * 512
-local edgeGuardDistance = 200
-local infestorUnitDef = UnitDefNames["leginfestor"]
+local myTeamUnitLimit = Spring.GetTeamMaxUnits(myTeamID)
+local waterLevel = tonumber(Spring.GetModOptions().map_waterlevel) or 0
 
 local function clamp(val, min, max)
   if val < min then return min end
@@ -22,51 +32,82 @@ local function clamp(val, min, max)
   return val
 end
 
-local function GetPointOnCircle(posX, posZ, range)
-    local angle = math.random() * 2 * math.pi
-    local offsetX = math.cos(angle) * range
-    local offsetZ = math.sin(angle) * range
-    local clampedX = clamp(posX + offsetX,edgeGuardDistance,mapWidth - edgeGuardDistance)
-    local clampedZ = clamp(posZ + offsetZ,edgeGuardDistance,mapHeight - edgeGuardDistance)
-    return clampedX, clampedZ
+
+-- Searches for a nearby point that is above the water line.
+-- Will retry up to 10000 times until it finds one.
+
+local function GetNearbyOrderPoint(posX, posZ, range)
+
+    local attempts = 0
+    local maxAttempts = 10000
+    local originalRange = range
+
+    while attempts < maxAttempts do
+
+      local targetRange = math.random(originalRange, range)
+      local angle = math.random() * 2 * math.pi
+      local offsetX = math.cos(angle) * targetRange
+      local offsetZ = math.sin(angle) * targetRange
+      local clampedX = clamp(posX + offsetX,edgeGuardDistance,mapWidth - edgeGuardDistance)
+      local clampedZ = clamp(posZ + offsetZ,edgeGuardDistance,mapHeight - edgeGuardDistance)
+      local hieght =  Spring.GetGroundHeight (clampedX,clampedZ)
+
+      if hieght > waterLevel then
+        return clampedX, hieght ,clampedZ
+      end
+
+      range = range + 25
+      attempts = attempts + 1
+
+    end
+
+    error("Infestation - Failed to find valid position above water near (" .. posX .. ", " .. posZ .. ") after " .. maxAttempts .. " attempts.")
+
+end
+
+local function stop(unitID)
+  Spring.GiveOrderToUnit(unitID,CMD.STOP,{},{})
 end
 
 -- Supresses gaurd commands on newly created infestors
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-  if (unitDefID == infestorUnitDef.id and unitTeam == myTeam) then
+  if (unitDefID == infestorUnitDef.id and unitTeam == myTeamID) then
     local commands = Spring.GetUnitCommands(unitID, -1)
       if commands and #commands > 0 then
       local currentCmd = commands[1]
         if currentCmd.id == CMD.GUARD then
-          Spring.GiveOrderToUnit(unitID, CMD.STOP, {}, {})
+          stop(unitID)
       end
     end
   end 
 end
 
---Orders idle infestors to either construct a new infestor or fight to a nearby position.
+
+
+-- Orders idle infestors to either construct a new infestor or fight to a nearby position.
+-- The chance to choose between building and fighting is proportional to your lowest resource storage level.
+-- Won't build above 85% of your unit cap (unitCapPercent)
+
 function widget:UnitIdle(unitID, unitDefID, unitTeam)
 
-  if (unitDefID == infestorUnitDef.id and unitTeam == myTeam) then
+  if (unitDefID == infestorUnitDef.id and unitTeam == myTeamID) then
 
-    local energy = {Spring.GetTeamResources(myTeam,"energy")}
-    local metal = {Spring.GetTeamResources(myTeam,"metal")}
-    local metalStorageFill = metal[1]/metal[2]
-    local energyStorageFill = energy[1]/energy[2]
-    local minResourse = math.min(metalStorageFill,energyStorageFill)
+    local energy = {Spring.GetTeamResources(myTeamID,"energy")}
+    local metal = {Spring.GetTeamResources(myTeamID,"metal")}
+    local metalStorageFill = metal[2] > 0 and (metal[1] / metal[2]) or 0
+    local energyStorageFill = energy[2] > 0 and (energy[1] / energy[2]) or 0
+    local minResource = math.min(metalStorageFill,energyStorageFill)
     local random = math.random()
-    local unitPosX, unitPosZ
-    local unitOrderX, unitOrderZ
-
-    unitPosX, _ ,unitPosZ = Spring.GetUnitPosition(unitID)   
     
-    if random < minResourse and random < 0.85 then
-      unitOrderX, unitOrderZ = GetPointOnCircle(unitPosX,unitPosZ,75)
-      Spring.GiveOrderToUnit(unitID,-(infestorUnitDef.id),{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
+    local unitPosX, _, unitPosZ = Spring.GetUnitPosition(unitID)
+
+    if random < minResource and Spring.GetTeamUnitCount(myTeamID) < (myTeamUnitLimit * unitCapPercent) then      
+
+        Spring.GiveOrderToUnit(unitID,-(infestorUnitDef.id),{ GetNearbyOrderPoint(unitPosX, unitPosZ,75) },{})
     else
-      unitOrderX, unitOrderZ = GetPointOnCircle(unitPosX,unitPosZ,300)
-      Spring.GiveOrderToUnit(unitID,CMD.FIGHT,{unitOrderX,Spring.GetGroundHeight(unitOrderX,unitOrderZ),unitOrderZ},{})
-    end
+        Spring.GiveOrderToUnit(unitID,CMD.FIGHT,{ GetNearbyOrderPoint(unitPosX, unitPosZ,300) },{})
+    end    
   end
 end
+
 
