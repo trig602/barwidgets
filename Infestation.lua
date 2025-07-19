@@ -66,10 +66,6 @@ local function GetNearbyOrderPoint(posX, posZ, range)
 
 end
 
-local function stop(unitID)
-  Spring.GiveOrderToUnit(unitID,CMD.STOP,{},{})
-end
-
 -- Supresses gaurd commands on newly created infestors
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
   if (unitDefID == infestorUnitDef.id and unitTeam == myTeamID) then
@@ -77,12 +73,11 @@ function widget:UnitFinished(unitID, unitDefID, unitTeam)
       if commands and #commands > 0 then
       local currentCmd = commands[1]
         if currentCmd.id == CMD.GUARD then
-          stop(unitID)
+          Spring.GiveOrderToUnit(unitID,CMD.STOP,{},{})
       end
     end
   end 
 end
-
 
 
 -- Orders idle infestors to either construct a new infestor or fight to a nearby position.
