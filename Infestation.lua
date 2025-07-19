@@ -19,6 +19,7 @@ end
 
 local edgeGuardDistance = 200
 local unitCapPercent = 0.85
+local minResourcePercent = 0.05
 
 local myTeamID = Spring.GetMyTeamID()
 local mapWidth = Game.mapX * 512
@@ -96,7 +97,7 @@ function widget:UnitIdle(unitID, unitDefID, unitTeam)
     local metal = {Spring.GetTeamResources(myTeamID,"metal")}
     local metalStorageFill = metal[2] > 0 and (metal[1] / metal[2]) or 0
     local energyStorageFill = energy[2] > 0 and (energy[1] / energy[2]) or 0
-    local minResource = math.min(metalStorageFill,energyStorageFill)
+    local minResource = math.min(metalStorageFill,energyStorageFill) - minResourcePercent
     local random = math.random()
     
     local unitPosX, _, unitPosZ = Spring.GetUnitPosition(unitID)
