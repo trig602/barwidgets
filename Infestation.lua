@@ -25,6 +25,7 @@ local myTeamID = Spring.GetMyTeamID()
 local mapWidth = Game.mapX * 512
 local mapHeight = Game.mapY * 512
 local myTeamUnitLimit = Spring.GetTeamMaxUnits(myTeamID)
+local waterLevel = tonumber(Spring.GetModOptions().map_waterlevel) or 0
 
 local function clamp(val, min, max)
   if val < min then return min end
@@ -52,7 +53,9 @@ local function GetNearbyOrderPoint(posX, posZ, range)
       local clampedZ = clamp(posZ + offsetZ,edgeGuardDistance,mapHeight - edgeGuardDistance)
       local height =  Spring.GetGroundHeight (clampedX,clampedZ)
 
-      if Spring.TestMoveOrder(infestorUnitDef.id, clampedX, height, clampedZ) then
+      if height > waterLevel then
+        return clampedX, height ,clampedZ
+      elseif Spring.TestMoveOrder(infestorUnitDef.id, clampedX, height, clampedZ) then
         return clampedX, height ,clampedZ
       end
 
