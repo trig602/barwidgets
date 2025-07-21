@@ -25,7 +25,6 @@ local myTeamID = Spring.GetMyTeamID()
 local mapWidth = Game.mapX * 512
 local mapHeight = Game.mapY * 512
 local myTeamUnitLimit = Spring.GetTeamMaxUnits(myTeamID)
-local waterLevel = tonumber(Spring.GetModOptions().map_waterlevel) or 0
 
 local function clamp(val, min, max)
   if val < min then return min end
@@ -51,10 +50,10 @@ local function GetNearbyOrderPoint(posX, posZ, range)
       local offsetZ = math.sin(angle) * targetRange
       local clampedX = clamp(posX + offsetX,edgeGuardDistance,mapWidth - edgeGuardDistance)
       local clampedZ = clamp(posZ + offsetZ,edgeGuardDistance,mapHeight - edgeGuardDistance)
-      local hieght =  Spring.GetGroundHeight (clampedX,clampedZ)
+      local height =  Spring.GetGroundHeight (clampedX,clampedZ)
 
-      if hieght > waterLevel then
-        return clampedX, hieght ,clampedZ
+      if Spring.TestMoveOrder(infestorUnitDef.id, clampedX, height, clampedZ) then
+        return clampedX, height ,clampedZ
       end
 
       range = range + 25
@@ -93,11 +92,10 @@ function widget:UnitIdle(unitID, unitDefID, unitTeam)
     local metalStorageFill = metal[2] > 0 and (metal[1] / metal[2]) or 0
     local energyStorageFill = energy[2] > 0 and (energy[1] / energy[2]) or 0
     local minResource = math.min(metalStorageFill,energyStorageFill) - minResourcePercent
-    local random = math.random()
     
     local unitPosX, _, unitPosZ = Spring.GetUnitPosition(unitID)
 
-    if random < minResource and Spring.GetTeamUnitCount(myTeamID) < (myTeamUnitLimit * unitCapPercent) then      
+    if math.random() < minResource and Spring.GetTeamUnitCount(myTeamID) < (myTeamUnitLimit * unitCapPercent) then      
 
         Spring.GiveOrderToUnit(unitID,-(infestorUnitDef.id),{ GetNearbyOrderPoint(unitPosX, unitPosZ,75) },{})
     else
