@@ -10,6 +10,7 @@ function widget:GetInfo()
   }
 end
 
+local idleCheckInterval = 60
 local rezIDSet = {}
 local rezUnitList = {}
 local myTeamID = Spring.GetMyTeamID()
@@ -43,7 +44,7 @@ end
 
 function widget:GameFrame(frame)
 
-  if frame % 150 == 0 then
+  if frame % idleCheckInterval == 0 then
     for unitID, _ in pairs(rezUnitList) do  
 
       local commands = Spring.GetUnitCommands(unitID, -1)
