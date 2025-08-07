@@ -97,7 +97,7 @@ local function ensureRmlFile()
       writeFile:close()
       rmlVerified = true
     else
-      Spring.Echo("Could Not Load RML File")
+      Spring.Echo("Could Not Write RML File")
     end
   else
     rmlVerified = true
@@ -424,4 +424,5 @@ function widget:Shutdown()
     widget.rmlContext:RemoveDataModel(infestationDatamodel)
   end
 end
+
 
