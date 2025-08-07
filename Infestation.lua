@@ -1,7 +1,7 @@
 function widget:GetInfo()
   return {
     name    = "Infestation",
-    desc    = "Makes infestors more true to thier namesake and multiply aggressively when left idle",
+    desc    = "Makes infestors more true to their namesake and multiply aggressively when left idle",
     author  = "trig602",
     date    = "2025-07-07",
     license = "GNU GPL, v2 or later",
@@ -424,3 +424,4 @@ function widget:Shutdown()
     widget.rmlContext:RemoveDataModel(infestationDatamodel)
   end
 end
+
