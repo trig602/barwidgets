@@ -344,7 +344,7 @@ local function tryBuildInfestor(unitID)
   end
 end
 
-
+-- Controls visibility for the toggle button
 function widget:SelectionChanged(selectedUnits)
   for i, unitID in ipairs(selectedUnits) do
     if Spring.GetUnitDefID(unitID) == infestorUnitDef.id then
@@ -386,7 +386,6 @@ end
 -- Replaces gaurd commands on newly created infestors with fight commands
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
   if (unitDefID == infestorUnitDef.id and unitTeam == myTeamID) then
-    -- increaseBuildChance() -- Build chance is increased only on unit completion
     local commands = Spring.GetUnitCommands(unitID, -1)
     if commands and #commands > 0 then
       local currentCmd = commands[1]
@@ -418,4 +417,3 @@ function widget:Shutdown()
     widget.rmlContext:RemoveDataModel(dataModelName)
   end
 end
-
