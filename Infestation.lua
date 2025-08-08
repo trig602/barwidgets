@@ -15,7 +15,6 @@ local rmlFile       = "luaui/Widgets/Infestation.rml"
 local rmlVerified   = false
 local rmlCode       = [[
 <rml>
-
   <head>
     <style>
       button {
@@ -191,6 +190,10 @@ local function setupUI()
   end
 end
 
+function widget:Initialize()
+  setupUI()
+end
+
 -- I maintain both an indexed list and a keyed list of idle Infestor unitIDs.
 -- The keyed list has unitIDs as the keys and index positions of the ID from the indexed list as values.
 -- I do this for very fast lookups as well as being able to pick IDs one at a time by index.
@@ -341,11 +344,6 @@ local function tryBuildInfestor(unitID)
   end
 end
 
-
-
-function widget:Initialize()
-  setupUI()
-end
 
 function widget:SelectionChanged(selectedUnits)
   for i, unitID in ipairs(selectedUnits) do
