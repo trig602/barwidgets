@@ -1,7 +1,7 @@
 function widget:GetInfo()
   return {
     name    = "Infestation",
-    desc    = "Makes infestors more true to their namesake and multiply aggressively when left idle",
+    desc    = "Makes infestors more true to thier namesake and multiply aggressively when left idle",
     author  = "trig602",
     date    = "2025-07-07",
     license = "GNU GPL, v2 or later",
@@ -10,9 +10,10 @@ function widget:GetInfo()
   }
 end
 
-local rmlFile = "luaui/Widgets/Infestation.rml"
-local rmlVerified = false
-local rmlCode = [[
+local dataModelName = "infestation_DataModel"
+local rmlFile       = "luaui/Widgets/Infestation.rml"
+local rmlVerified   = false
+local rmlCode       = [[
 <rml>
 
   <head>
@@ -64,7 +65,7 @@ local rmlCode = [[
   </head>
 
   <body>
-    <div data-model="infestationDatamodel">
+    <div data-model="]] .. dataModelName .. [[">
       <button data-class-active="InfestationActive" data-class-inactive="!InfestationActive"
         data-style-left="buttonPosX" data-style-top="buttonPosY" data-style-width="buttonSize"
         data-style-height="buttonSize" data-style-padding="buttonPadding" data-style-border-width="buttonBorderWidth"
@@ -124,8 +125,8 @@ local minResourcePercent                = 0.05 -- min metal reserves were chance
 
 local screenSizeX, screenSizeY          = Spring.GetWindowGeometry()
 
-local context                           = "infestion_context"
-local infestationDatamodel              = "infestationDatamodel"
+local contextName                       = "infestion_context"
+
 local document                          = nil
 local uiScale                           = Spring.GetConfigFloat("ui_scale", 1)
 
@@ -174,9 +175,9 @@ local function setupUI()
   end
 
   RmlUi.LoadFontFace("fonts/FreeSansBold.otf")
-  widget.rmlContext = RmlUi.CreateContext(context)
+  widget.rmlContext = RmlUi.CreateContext(contextName)
 
-  dmHandle = widget.rmlContext:OpenDataModel(infestationDatamodel, dataModel)
+  dmHandle = widget.rmlContext:OpenDataModel(dataModelName, dataModel)
   if not dmHandle then
     Spring.Echo("Failed to open RmlUi data model")
     return
@@ -418,11 +419,9 @@ function widget:Shutdown()
     document:Close()
   end
   if widget.rmlContext then
-    RmlUi.RemoveContext(context)
+    RmlUi.RemoveContext(contextName)
   end
   if dmHandle then
-    widget.rmlContext:RemoveDataModel(infestationDatamodel)
+    widget.rmlContext:RemoveDataModel(dataModelName)
   end
 end
-
-
