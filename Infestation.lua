@@ -12,7 +12,7 @@ end
 
 local dataModelName = "infestation_DataModel"
 local rmlFile       = "luaui/Widgets/Infestation.rml"
-local rmlVerified   = false
+local rmlVerified   = false1
 local rmlCode       = [[
 <rml>
   <head>
@@ -405,11 +405,6 @@ end
 
 function widget:InfestorToggleFunction()
   dmHandle.InfestationActive = not dmHandle.InfestationActive
-  if dmHandle.InfestationActive then
-    Spring.Echo("Activated")
-  else
-    Spring.Echo("Deactivated")
-  end
 end
 
 function widget:Shutdown()
