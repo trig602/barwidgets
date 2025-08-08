@@ -12,7 +12,7 @@ end
 
 local dataModelName = "infestation_DataModel"
 local rmlFile       = "luaui/Widgets/Infestation.rml"
-local rmlVerified   = false1
+local rmlVerified   = false
 local rmlCode       = [[
 <rml>
   <head>
@@ -418,3 +418,4 @@ function widget:Shutdown()
     widget.rmlContext:RemoveDataModel(dataModelName)
   end
 end
+
