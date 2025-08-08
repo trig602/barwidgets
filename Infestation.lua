@@ -19,7 +19,6 @@ local rmlCode       = [[
     <style>
       button {
         position: absolute;
-        font-family: "FreeSans";
         box-sizing: border-box;
         border-color: rgb(32, 32, 32);
         opacity: 0.8;
