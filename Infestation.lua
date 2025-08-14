@@ -19,6 +19,7 @@ local rmlCode       = [[
     <style>
       button {
         position: absolute;
+        font-family: "FreeSans";
         box-sizing: border-box;
         border-color: rgb(32, 32, 32);
         opacity: 0.8;
@@ -106,8 +107,32 @@ end
 ensureRmlFile()
 
 
+
+
+local spGetGroundHeight = Spring.GetGroundHeight
+local spTestBuildOrder = Spring.TestBuildOrder
+local spTestMoveOrder = Spring.TestMoveOrder
+local spGetUnitsInCylinder = Spring.GetUnitsInCylinder
+local spGetUnitDefID = Spring.GetUnitDefID
+local spGetUnitCommands = Spring.GetUnitCommands
+local spGetUnitPosition = Spring.GetUnitPosition
+local spGiveOrderToUnit = Spring.GiveOrderToUnit
+local spGetTeamResources = Spring.GetTeamResources
+local spValidUnitID = Spring.ValidUnitID
+local spGetTeamUnitCount = Spring.GetTeamUnitCount
+
+local mathSqrt = math.sqrt
+local mathCos = math.cos
+local mathSin = math.sin
+local mathRandom = math.random
+local mathPI = math.pi
+local mathClamp = math.clamp
+
+local cmdFight = CMD.FIGHT
+
+
 local function scaleValueRange(input, minIn, maxIn, minOut, maxOut)
-  local normalizeValue = (math.clamp(input, minIn, maxIn) - minIn) / (maxIn - minIn)
+  local normalizeValue = (mathClamp(input, minIn, maxIn) - minIn) / (maxIn - minIn)
   local scaledValue = minOut + normalizeValue * (maxOut - minOut)
 
   return scaledValue
@@ -137,6 +162,8 @@ local infestorUnitDef                   = UnitDefNames["leginfestor"]
 if not infestorUnitDef then
   error("[Infestation Widget] Legion not enabled — disabling widget.")
 end
+local infestUnitId = infestorUnitDef.id
+
 
 local myTeamID               = Spring.GetMyTeamID()
 local mapWidth               = Game.mapX * 512
@@ -159,6 +186,8 @@ dataModel.buttonLabelSize    = (buttonSize * 0.20) .. "px"
 dataModel.buttonStatusSize   = (buttonSize * 0.29) .. "px"
 dataModel.buttonBorderWidth  = (buttonSize * 0.06) .. "px"
 dataModel.buttonBorderRadius = (buttonSize * 0.08) .. "px"
+
+
 
 
 local function setupUI()
@@ -241,17 +270,17 @@ local function GetNearbyBuildPoint(posX, posZ, range)
   local originalRange = range
 
   while attempts < maxAttempts do
-    local targetRange = math.random(originalRange, range)
-    local angle = math.random() * 2 * math.pi
-    local offsetX = math.cos(angle) * targetRange
-    local offsetZ = math.sin(angle) * targetRange
-    local clampedX = math.clamp(posX + offsetX, edgeGuardDistance, mapWidth - edgeGuardDistance)
-    local clampedZ = math.clamp(posZ + offsetZ, edgeGuardDistance, mapHeight - edgeGuardDistance)
-    local height = Spring.GetGroundHeight(clampedX, clampedZ)
+    local targetRange = mathRandom(originalRange, range)
+    local angle = mathRandom() * 2 * mathPI
+    local offsetX = mathCos(angle) * targetRange
+    local offsetZ = mathSin(angle) * targetRange
+    local clampedX = mathClamp(posX + offsetX, edgeGuardDistance, mapWidth - edgeGuardDistance)
+    local clampedZ = mathClamp(posZ + offsetZ, edgeGuardDistance, mapHeight - edgeGuardDistance)
+    local height = spGetGroundHeight(clampedX, clampedZ)
 
     if height > waterLevel then
       return clampedX, height, clampedZ
-    elseif Spring.TestBuildOrder(infestorUnitDef.id, clampedX, height, clampedZ, 0) > 1 then
+    elseif spTestBuildOrder(infestUnitId, clampedX, height, clampedZ, 0) > 1 then
       return clampedX, height, clampedZ
     end
 
@@ -269,21 +298,21 @@ local function getPerpendicularOrderPoint(unitPosX, unitPosZ, targetPosX, target
   local perpendicularZ = targetPosX - unitPosX
   local perpendicularX = -(targetPosZ - unitPosZ)
 
-  local length = math.sqrt(perpendicularX ^ 2 + perpendicularZ ^ 2)
+  local length = mathSqrt(perpendicularX ^ 2 + perpendicularZ ^ 2)
   local offsetX = perpendicularX / length * distance
   local offsetZ = perpendicularZ / length * distance
 
-  local orderPosX = math.clamp(unitPosX + offsetX, edgeGuardDistance, mapWidth - edgeGuardDistance)
-  local orderPosZ = math.clamp(unitPosZ + offsetZ, edgeGuardDistance, mapHeight - edgeGuardDistance)
+  local orderPosX = mathClamp(unitPosX + offsetX, edgeGuardDistance, mapWidth - edgeGuardDistance)
+  local orderPosZ = mathClamp(unitPosZ + offsetZ, edgeGuardDistance, mapHeight - edgeGuardDistance)
 
-  local height = Spring.GetGroundHeight(orderPosX, orderPosZ)
+  local height = spGetGroundHeight(orderPosX, orderPosZ)
 
   if height > waterLevel then
     return orderPosX, height, orderPosZ
-  elseif Spring.TestMoveOrder(infestorUnitDef.id, orderPosX, height, orderPosZ) then
+  elseif spTestMoveOrder(infestUnitId, orderPosX, height, orderPosZ) then
     return orderPosX, height, orderPosZ
   else
-    return unitPosX, Spring.GetGroundHeight(unitPosX, unitPosZ), unitPosZ
+    return unitPosX, spGetGroundHeight(unitPosX, unitPosZ), unitPosZ
   end
 end
 
@@ -291,17 +320,17 @@ end
 -- Many infestors slowly solo building will crash the ecomony.
 
 local function orderNearbyAssistance(posX, posZ, issuingUnitID)
-  local units = Spring.GetUnitsInCylinder(posX, posZ, assistanceRange, myTeamID)
+  local units = spGetUnitsInCylinder(posX, posZ, assistanceRange, myTeamID)
 
   for i, unit in ipairs(units) do
-    local unitDefID = Spring.GetUnitDefID(unit)
-    if unitDefID == infestorUnitDef.id and unit ~= issuingUnitID then
-      local commands = Spring.GetUnitCommands(unit, -1)
+    local unitDefID = spGetUnitDefID(unit)
+    if unitDefID == infestUnitId and unit ~= issuingUnitID then
+      local commands = spGetUnitCommands(unit, -1)
       if commands == nil or #commands == 0 then
-        local unitPosX, _, unitPosZ = Spring.GetUnitPosition(unit)
+        local unitPosX, _, unitPosZ = spGetUnitPosition(unit)
         local orderPointX, OrderPointY, OrderPointZ = getPerpendicularOrderPoint(unitPosX, unitPosZ, posX, posZ,
           assistanceOrderDistance)
-        Spring.GiveOrderToUnit(unit, CMD.FIGHT, { orderPointX, OrderPointY, OrderPointZ }, {})
+        spGiveOrderToUnit(unit, cmdFight, { orderPointX, OrderPointY, OrderPointZ }, {})
       end
     end
   end
@@ -309,25 +338,25 @@ end
 
 
 local function buildInfestor(unitID)
-  local unitPosX, _, unitPosZ = Spring.GetUnitPosition(unitID)
+  local unitPosX, _, unitPosZ = spGetUnitPosition(unitID)
   if unitPosX == nil or unitPosZ == nil then return end
   local orderPointX, orderPointY, orderPointZ = GetNearbyBuildPoint(unitPosX, unitPosZ, buildRange)
-  Spring.GiveOrderToUnit(unitID, -(infestorUnitDef.id), { orderPointX, orderPointY, orderPointZ }, {})
+  spGiveOrderToUnit(unitID, -(infestUnitId), { orderPointX, orderPointY, orderPointZ }, {})
   orderNearbyAssistance(orderPointX, orderPointZ, unitID)
 end
 
 -- Build chance is metal reserves -5%
 
 local function rollBuildChance()
-  local energy = { Spring.GetTeamResources(myTeamID, "energy") }
+  local energy = { spGetTeamResources(myTeamID, "energy") }
   local energyStorageFill = energy[2] > 0 and (energy[1] / energy[2]) or 0
   if energyStorageFill < minResourcePercent then return false end -- Chance is 0 during an energy stall.
 
-  local metal = { Spring.GetTeamResources(myTeamID, "metal") }
+  local metal = { spGetTeamResources(myTeamID, "metal") }
   local metalStorageFill = metal[2] > 0 and (metal[1] / metal[2]) or 0
   local resourceChance = metalStorageFill - minResourcePercent
 
-  if math.random() < resourceChance then
+  if mathRandom() < resourceChance then
     return true
   end
   return false
@@ -335,18 +364,18 @@ end
 
 
 local function tryBuildInfestor(unitID)
-  if not Spring.ValidUnitID(unitID) then return end
-  if Spring.GetTeamUnitCount(myTeamID) < (myTeamUnitLimit * unitCapPercent) then
+  if not spValidUnitID(unitID) then return end
+  if spGetTeamUnitCount(myTeamID) < (myTeamUnitLimit * unitCapPercent) then
     if rollBuildChance() then
       buildInfestor(unitID)
     end
   end
 end
 
--- Controls visibility for the toggle button
+
 function widget:SelectionChanged(selectedUnits)
   for i, unitID in ipairs(selectedUnits) do
-    if Spring.GetUnitDefID(unitID) == infestorUnitDef.id then
+    if spGetUnitDefID(unitID) == infestUnitId then
       document:Show()
       return
     end
@@ -355,19 +384,19 @@ function widget:SelectionChanged(selectedUnits)
 end
 
 function widget:UnitIdle(unitID, unitDefID, unitTeam)
-  if unitDefID == infestorUnitDef.id and unitTeam == myTeamID and infestorIdleIndexMap[unitID] == nil then
+  if unitDefID == infestUnitId and unitTeam == myTeamID and infestorIdleIndexMap[unitID] == nil then
     addInfestorToLists(unitID)
   end
 end
 
 function widget:UnitCommand(unitID, unitDefID, unitTeam, cmdId, cmdParams, cmdOpts, cmdTag, playerID, fromSynced, fromLua)
-  if unitDefID == infestorUnitDef.id and unitTeam == myTeamID then
+  if unitDefID == infestUnitId and unitTeam == myTeamID then
     removeInfestorFromLists(unitID)
   end
 end
 
 function widget:MetaUnitRemoved(unitID, unitDefID, unitTeam)
-  if unitDefID == infestorUnitDef.id and unitTeam == myTeamID then
+  if unitDefID == infestUnitId and unitTeam == myTeamID then
     removeInfestorFromLists(unitID)
   end
 end
@@ -384,17 +413,18 @@ end
 
 -- Replaces gaurd commands on newly created infestors with fight commands
 function widget:UnitFinished(unitID, unitDefID, unitTeam)
-  if (unitDefID == infestorUnitDef.id and unitTeam == myTeamID) then
-    local commands = Spring.GetUnitCommands(unitID, -1)
+  if (unitDefID == infestUnitId and unitTeam == myTeamID) then
+    -- increaseBuildChance() -- Build chance is increased only on unit completion
+    local commands = spGetUnitCommands(unitID, -1)
     if commands and #commands > 0 then
       local currentCmd = commands[1]
       if currentCmd.id == CMD.GUARD then
         if dmHandle.InfestationActive then
-          local unitPosX, _, unitPosZ = Spring.GetUnitPosition(unitID)
-          Spring.GiveOrderToUnit(unitID, CMD.FIGHT, { GetNearbyBuildPoint(unitPosX, unitPosZ, assistanceOrderDistance) },
+          local unitPosX, _, unitPosZ = spGetUnitPosition(unitID)
+          spGiveOrderToUnit(unitID, cmdFight, { GetNearbyBuildPoint(unitPosX, unitPosZ, assistanceOrderDistance) },
             {})
         else
-          Spring.GiveOrderToUnit(unitID, CMD.STOP, {}, {})
+          spGiveOrderToUnit(unitID, CMD.STOP, {}, {})
         end
       end
     end
@@ -403,6 +433,11 @@ end
 
 function widget:InfestorToggleFunction()
   dmHandle.InfestationActive = not dmHandle.InfestationActive
+  if dmHandle.InfestationActive then
+    Spring.Echo("Infestation Activated")
+  else
+    Spring.Echo("Infestation Deactivated")
+  end
 end
 
 function widget:Shutdown()
